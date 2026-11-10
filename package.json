@@ -1,0 +1,19 @@
+{
+  "name": "plamo-extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/popup.tsx --bundle --minify --outfile=dist/popup.js && cp public/* dist/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}
