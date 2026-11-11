@@ -2,6 +2,7 @@
   "name": "plamo-extension",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.18.0",
   "scripts": {
     "build": "esbuild src/popup.tsx src/background.ts --bundle --minify --outdir=dist && cp public/* dist/",
     "typecheck": "tsc --noEmit"
