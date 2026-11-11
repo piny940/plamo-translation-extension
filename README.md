@@ -1,6 +1,6 @@
 # PLaMo Translate
 
-ローカルの Ollama で動かす PLaMo 3 Translate を使い、閲覧中のページを日本語に翻訳する Chrome 拡張機能です。
+ローカルの Ollama で動かす PLaMo 3 Translate を使い、閲覧中のページを日本語に翻訳する非公式の Chrome 拡張機能です。
 
 ## 必要なもの
 
