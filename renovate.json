@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "minimumReleaseAge": "14 days",
+  "packageRules": [
+    {
+      "matchPackageNames": [ "node", "@types/node" ],
+      "groupName": "node"
+    },
+    {
+      "matchPackageNames": [ "react", "react-dom", "@types/react", "@types/react-dom" ],
+      "groupName": "react"
+    }
+  ],
+  "platformAutomerge": true,
+  "automerge": true,
+  "addLabels": ["renovate"],
+  "extends": [
+    "config:best-practices",
+    ":disableDependencyDashboard"
+  ]
+}
