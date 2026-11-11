@@ -83,10 +83,20 @@ const translateTab = async (tabId: number, page: string | null): Promise<void> =
   }
 }
 
-chrome.runtime.onMessage.addListener((message: unknown) => {
-  const msg = message as { type?: unknown; tabId?: unknown; url?: unknown }
+chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
+  const msg = message as { type?: unknown; tabId?: unknown; url?: unknown; text?: unknown }
   if (msg.type === "translate" && typeof msg.tabId === "number") {
     const url = typeof msg.url === "string" ? msg.url : undefined
     translateTab(msg.tabId, toCacheKey(url)).catch(console.error)
   }
+  if (msg.type === "translateText" && typeof msg.text === "string") {
+    translate(msg.text)
+      .then((text) => sendResponse({ ok: true, text }))
+      .catch((e) => {
+        console.error(e)
+        sendResponse({ ok: false })
+      })
+    return true
+  }
+  return undefined
 })

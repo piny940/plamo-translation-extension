@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@12.18.0",
   "scripts": {
-    "build": "esbuild src/popup.tsx src/background.ts --bundle --minify --outdir=dist && cp public/* dist/",
+    "build": "esbuild src/popup.tsx src/background.ts src/selection.ts --bundle --minify --outdir=dist && cp public/* dist/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
