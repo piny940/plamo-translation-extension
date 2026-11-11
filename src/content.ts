@@ -12,13 +12,21 @@ interface PlamoState {
   nextId: number
   originals: Map<number, string>
   inlineNodes: Map<number, InlineNode[]>
+  originalTexts: Map<number, string>
+  tooltipReady: boolean
 }
 
 type PlamoGlobal = { __plamo?: PlamoState }
 
 export const collectUnits = (): Unit[] => {
   const g = globalThis as unknown as PlamoGlobal
-  g.__plamo ??= { nextId: 1, originals: new Map(), inlineNodes: new Map() }
+  g.__plamo ??= {
+    nextId: 1,
+    originals: new Map(),
+    inlineNodes: new Map(),
+    originalTexts: new Map(),
+    tooltipReady: false,
+  }
   const state = g.__plamo
 
   const EXCLUDED_TAGS = new Set([
@@ -84,11 +92,28 @@ export const collectUnits = (): Unit[] => {
     if (text === "") return
     register(el, nodes, text)
   }
+  const toText = (node: Node, depth: number): string => {
+    if (node.nodeType === Node.TEXT_NODE) return (node.textContent ?? "").replace(/\s+/g, " ")
+    if (!(node instanceof Element)) return ""
+    const tag = node.tagName.toUpperCase()
+    if (LIST_TAGS.has(tag)) {
+      const indent = "  ".repeat(depth)
+      const lines = Array.from(node.children).map((child) => {
+        const childTag = child.tagName.toUpperCase()
+        const marker =
+          tag !== "DL" && childTag === "LI" ? "・" : tag === "DL" && childTag === "DD" ? "  " : ""
+        return indent + marker + toText(child, depth + 1).trim()
+      })
+      return `\n${lines.join("\n")}\n`
+    }
+    return Array.from(node.childNodes).map((child) => toText(child, depth)).join("")
+  }
   const register = (el: Element, nodes: InlineNode[], text: string): void => {
     const id = state.nextId++
     el.setAttribute("data-plamo-id", String(id))
     state.originals.set(id, el.innerHTML)
     state.inlineNodes.set(id, nodes)
+    state.originalTexts.set(id, toText(el, 0).replace(/ *\n+/g, "\n").trim())
     units.push({ id, text })
   }
 
@@ -140,7 +165,40 @@ export const applyTranslation = (id: number, translated: string): void => {
   const state = (globalThis as unknown as PlamoGlobal).__plamo
   const target = document.querySelector(`[data-plamo-id="${id}"]`)
   const nodes = state?.inlineNodes.get(id)
-  if (target === null || nodes === undefined) return
+  if (state === undefined || target === null || nodes === undefined) return
+
+  if (!state.tooltipReady) {
+    state.tooltipReady = true
+    const host = document.createElement("div")
+    const tooltip = document.createElement("div")
+    tooltip.style.cssText =
+      "position: fixed; z-index: 2147483647; max-width: 600px; padding: 6px 10px; " +
+      "background: #333; color: #fff; font-size: 16px; line-height: 1.5; border-radius: 4px; " +
+      "pointer-events: none; white-space: pre-wrap; display: none;"
+    host.attachShadow({ mode: "open" }).appendChild(tooltip)
+    document.body.appendChild(host)
+    const hide = (): void => {
+      tooltip.style.display = "none"
+    }
+    document.addEventListener("mouseover", (event) => {
+      const el =
+        event.target instanceof Element ? event.target.closest("[data-plamo-translated]") : null
+      const text = el === null ? undefined : state.originalTexts.get(Number(el.getAttribute("data-plamo-id")))
+      if (el === null || text === undefined) {
+        hide()
+        return
+      }
+      tooltip.textContent = text
+      tooltip.style.display = "block"
+      const rect = el.getBoundingClientRect()
+      let left = rect.left
+      if (left + tooltip.offsetWidth > window.innerWidth) left = window.innerWidth - tooltip.offsetWidth - 8
+      if (left < 0) left = 8
+      tooltip.style.left = `${left}px`
+      tooltip.style.top = `${rect.top - tooltip.offsetHeight - 8}px`
+    })
+    window.addEventListener("scroll", hide, { capture: true, passive: true })
+  }
 
   const unescape = (s: string): string =>
     s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
@@ -191,6 +249,7 @@ export const applyTranslation = (id: number, translated: string): void => {
 
   if (!valid) {
     target.textContent = unescape(translated.replace(TAG, ""))
+    target.setAttribute("data-plamo-translated", "")
     return
   }
 
@@ -212,4 +271,5 @@ export const applyTranslation = (id: number, translated: string): void => {
     }
   }
   target.replaceChildren(fragment)
+  target.setAttribute("data-plamo-translated", "")
 }
