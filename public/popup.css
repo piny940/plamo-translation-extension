@@ -1,0 +1,105 @@
+body {
+  width: 600px;
+  height: 480px;
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+#root {
+  height: 100%;
+}
+
+.layout {
+  display: flex;
+  height: 100%;
+}
+
+.navbar {
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e5e7eb;
+  padding: 12px 0;
+  box-sizing: border-box;
+}
+
+.navbar button {
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.navbar button:hover {
+  background: #f3f4f6;
+}
+
+.navbar button.active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.cache-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cache-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cache-url {
+  flex: 1;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.cache-delete {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cache-delete:hover {
+  background: #fef2f2;
+}
+
+.translate-button {
+  width: 200px;
+  height: 40px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.translate-button:hover {
+  background: #1d4ed8;
+}
+
+.translate-button:active {
+  background: #1e40af;
+}

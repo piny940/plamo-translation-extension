@@ -1,3 +1,4 @@
+import { getCache, putCache, toCacheKey } from "./cache"
 import { applyTranslation, collectUnits, pickNearestId } from "./content"
 
 const OLLAMA_URL = "http://localhost:11434/api/generate"
@@ -30,13 +31,30 @@ const translate = async (text: string): Promise<string> => {
   return data.response
 }
 
-const translateTab = async (tabId: number): Promise<void> => {
+const translateTab = async (tabId: number, page: string | null): Promise<void> => {
   console.log("Start translating")
   const [injection] = await chrome.scripting.executeScript({
     target: { tabId },
     func: collectUnits,
   })
   const pending = new Map((injection?.result ?? []).map((unit) => [unit.id, unit]))
+  if (page !== null) {
+    const cache = await getCache(page)
+    for (const unit of [...pending.values()]) {
+      const cached = cache[unit.text]
+      if (cached === undefined) continue
+      pending.delete(unit.id)
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          func: applyTranslation,
+          args: [unit.id, cached],
+        })
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }
   while (pending.size > 0) {
     let unit = pending.values().next().value!
     try {
@@ -58,6 +76,7 @@ const translateTab = async (tabId: number): Promise<void> => {
         func: applyTranslation,
         args: [unit.id, translated],
       })
+      if (page !== null) await putCache(page, unit.text, translated)
     } catch (e) {
       console.error(e)
     }
@@ -65,8 +84,9 @@ const translateTab = async (tabId: number): Promise<void> => {
 }
 
 chrome.runtime.onMessage.addListener((message: unknown) => {
-  const msg = message as { type?: unknown; tabId?: unknown }
+  const msg = message as { type?: unknown; tabId?: unknown; url?: unknown }
   if (msg.type === "translate" && typeof msg.tabId === "number") {
-    translateTab(msg.tabId).catch(console.error)
+    const url = typeof msg.url === "string" ? msg.url : undefined
+    translateTab(msg.tabId, toCacheKey(url)).catch(console.error)
   }
 })
