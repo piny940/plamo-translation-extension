@@ -161,6 +161,29 @@ export const collectUnits = (): Unit[] => {
   return units
 }
 
+export const pickNearestId = (ids: number[]): number | null => {
+  const hovered = document.querySelectorAll(":hover")
+  const origin = hovered[hovered.length - 1]
+  if (origin === undefined) return null
+  const a = origin.getBoundingClientRect()
+  let best: number | null = null
+  let bestDistance = Infinity
+  for (const id of ids) {
+    const el = document.querySelector(`[data-plamo-id="${id}"]`)
+    if (el === null) continue
+    const b = el.getBoundingClientRect()
+    if (b.width === 0 && b.height === 0) continue
+    const dx = Math.max(0, a.left - b.right, b.left - a.right)
+    const dy = Math.max(0, a.top - b.bottom, b.top - a.bottom)
+    const distance = Math.hypot(dx, dy)
+    if (distance < bestDistance) {
+      best = id
+      bestDistance = distance
+    }
+  }
+  return best
+}
+
 export const applyTranslation = (id: number, translated: string): void => {
   const state = (globalThis as unknown as PlamoGlobal).__plamo
   const target = document.querySelector(`[data-plamo-id="${id}"]`)

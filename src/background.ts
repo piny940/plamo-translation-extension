@@ -1,4 +1,4 @@
-import { applyTranslation, collectUnits } from "./content"
+import { applyTranslation, collectUnits, pickNearestId } from "./content"
 
 const OLLAMA_URL = "http://localhost:11434/api/generate"
 const MODEL = "hf.co/pfnet/plamo-3-translate-0.8b-GGUF:Q4_K_M"
@@ -36,8 +36,21 @@ const translateTab = async (tabId: number): Promise<void> => {
     target: { tabId },
     func: collectUnits,
   })
-  const units = injection?.result ?? []
-  for (const unit of units) {
+  const pending = new Map((injection?.result ?? []).map((unit) => [unit.id, unit]))
+  while (pending.size > 0) {
+    let unit = pending.values().next().value!
+    try {
+      const [hovered] = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: pickNearestId,
+        args: [[...pending.keys()]],
+      })
+      const hoveredUnit = hovered?.result == null ? undefined : pending.get(hovered.result)
+      if (hoveredUnit !== undefined) unit = hoveredUnit
+    } catch (e) {
+      console.error(e)
+    }
+    pending.delete(unit.id)
     try {
       const translated = await translate(unit.text)
       await chrome.scripting.executeScript({
