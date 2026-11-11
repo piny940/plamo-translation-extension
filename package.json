@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/popup.tsx --bundle --minify --outfile=dist/popup.js && cp public/* dist/",
+    "build": "esbuild src/popup.tsx src/background.ts --bundle --minify --outdir=dist && cp public/* dist/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -11,6 +11,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@types/chrome": "0.3.7",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "esbuild": "0.28.2",

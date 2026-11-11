@@ -1,0 +1,59 @@
+import { applyTranslation, collectUnits } from "./content"
+
+const OLLAMA_URL = "http://localhost:11434/api/generate"
+const MODEL = "hf.co/pfnet/plamo-3-translate-0.8b-GGUF:Q4_K_M"
+
+const translate = async (text: string): Promise<string> => {
+  const res = await fetch(OLLAMA_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      model: MODEL,
+      raw: true,
+      stream: false,
+      prompt:
+        "<|plamo:tag|>dataset<|plamo:msg|>translation" +
+        "<|plamo:tag|>input<|plamo:msg|>" +
+        text +
+        "<|plamo:tag|>output<|plamo:key|>lang<|plamo:val|>ja<|plamo:msg|>",
+      options: {
+        temperature: 0,
+        num_ctx: 8192,
+        num_predict: 4096,
+        stop: ["<|plamo:tag|>", "<|plamo:bos|>"],
+      },
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`Ollama request failed: ${res.status} ${await res.text()}`)
+  }
+  const data: { response: string } = await res.json()
+  return data.response
+}
+
+const translateTab = async (tabId: number): Promise<void> => {
+  console.log("Start translating")
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: collectUnits,
+  })
+  const units = injection?.result ?? []
+  for (const unit of units) {
+    try {
+      const translated = await translate(unit.text)
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: applyTranslation,
+        args: [unit.id, translated],
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  }
+}
+
+chrome.runtime.onMessage.addListener((message: unknown) => {
+  const msg = message as { type?: unknown; tabId?: unknown }
+  if (msg.type === "translate" && typeof msg.tabId === "number") {
+    translateTab(msg.tabId).catch(console.error)
+  }
+})
