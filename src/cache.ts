@@ -19,10 +19,16 @@ export const getCache = async (page: string): Promise<PageCache> => {
   return (result[key] as PageCache | undefined) ?? {}
 }
 
-export const putCache = async (page: string, source: string, translated: string): Promise<void> => {
-  const cache = await getCache(page)
-  cache[source] = translated
-  await chrome.storage.local.set({ [PREFIX + page]: cache })
+let queue: Promise<void> = Promise.resolve()
+
+export const putCache = (page: string, source: string, translated: string): Promise<void> => {
+  const next = queue.then(async () => {
+    const cache = await getCache(page)
+    cache[source] = translated
+    await chrome.storage.local.set({ [PREFIX + page]: cache })
+  })
+  queue = next.catch(() => {})
+  return next
 }
 
 export const listCachedPages = async (): Promise<string[]> => {

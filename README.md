@@ -24,15 +24,18 @@
 3. 拡張機能からのアクセスを許可して Ollama を起動します。
 
    ```sh
-   OLLAMA_ORIGINS="chrome-extension://*" ollama serve
+   OLLAMA_ORIGINS="chrome-extension://*" OLLAMA_NUM_PARALLEL=5 ollama serve
    ```
 
    Ollama が既定で許可するオリジンには `chrome-extension://` が含まれないため、`OLLAMA_ORIGINS` を設定しないとリクエストが 403 で拒否されます。
+
+   拡張機能はページ翻訳時に最大 5 件のリクエストを同時に送ります。`OLLAMA_NUM_PARALLEL` の既定値は 1 のため、設定しないとリクエストが順番待ちになり並列に翻訳されません。
 
    macOS のメニューバーアプリとして常駐させる場合は、次を実行してから Ollama アプリを再起動します。
 
    ```sh
    launchctl setenv OLLAMA_ORIGINS "chrome-extension://*"
+   launchctl setenv OLLAMA_NUM_PARALLEL 5
    ```
 
 拡張機能の接続先は `http://localhost:11434` に固定されています（[public/manifest.json](public/manifest.json) の `host_permissions`）。

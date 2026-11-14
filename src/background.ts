@@ -3,6 +3,7 @@ import { applyTranslation, collectUnits, pickNearestId } from "./content"
 
 const OLLAMA_URL = "http://localhost:11434/api/generate"
 const MODEL = "hf.co/pfnet/plamo-3-translate-0.8b-GGUF:Q4_K_M"
+const CONCURRENCY = 3
 
 const translate = async (text: string): Promise<string> => {
   const res = await fetch(OLLAMA_URL, {
@@ -55,32 +56,36 @@ const translateTab = async (tabId: number, page: string | null): Promise<void> =
       }
     }
   }
-  while (pending.size > 0) {
-    let unit = pending.values().next().value!
-    try {
-      const [hovered] = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: pickNearestId,
-        args: [[...pending.keys()]],
-      })
-      const hoveredUnit = hovered?.result == null ? undefined : pending.get(hovered.result)
-      if (hoveredUnit !== undefined) unit = hoveredUnit
-    } catch (e) {
-      console.error(e)
-    }
-    pending.delete(unit.id)
-    try {
-      const translated = await translate(unit.text)
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        func: applyTranslation,
-        args: [unit.id, translated],
-      })
-      if (page !== null) await putCache(page, unit.text, translated)
-    } catch (e) {
-      console.error(e)
+  const worker = async (): Promise<void> => {
+    while (pending.size > 0) {
+      let hoveredId: number | null = null
+      try {
+        const [hovered] = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: pickNearestId,
+          args: [[...pending.keys()]],
+        })
+        hoveredId = hovered?.result ?? null
+      } catch (e) {
+        console.error(e)
+      }
+      const unit = (hoveredId === null ? undefined : pending.get(hoveredId)) ?? pending.values().next().value
+      if (unit === undefined) return
+      pending.delete(unit.id)
+      try {
+        const translated = await translate(unit.text)
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          func: applyTranslation,
+          args: [unit.id, translated],
+        })
+        if (page !== null) await putCache(page, unit.text, translated)
+      } catch (e) {
+        console.error(e)
+      }
     }
   }
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker))
 }
 
 chrome.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
